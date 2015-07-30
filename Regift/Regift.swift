@@ -13,6 +13,7 @@ import AVFoundation
 import Dispatch
 
 public typealias TimePoint = CMTime
+public typealias ProgressCallback = ((CGImage, Double) -> Void)
 
 public class Regift: NSObject {
     struct Constants {
@@ -53,7 +54,7 @@ public class Regift: NSObject {
     :param: progressHandler The closure to be called with the progress of the conversion. It is called with an argument from 0.0 -> 1.0
     :param: completionHandler The closure to be called on completion of the process. If the conversion was successful, an NSURL to the location of the GIF on disk is passed in.
     */
-    public class func createGIFAsynchronouslyFromURL(URL: NSURL, withFrameCount frameCount: Int, delayTime: Float, loopCount: Int = 0, progressHandler: ((CGImage, Double) -> Void)?, completionHandler: (NSURL? -> Void)?) {
+    public class func createGIFAsynchronouslyFromURL(URL: NSURL, withFrameCount frameCount: Int, delayTime: Float, loopCount: Int = 0, progressHandler: ProgressCallback?, completionHandler: (NSURL? -> Void)?) {
         let fileProperties = [
             kCGImagePropertyGIFDictionary as String :
                 [kCGImagePropertyGIFLoopCount as String: loopCount]
@@ -100,7 +101,7 @@ public class Regift: NSObject {
         return fileURL
     }
     
-    public class func createGIFAsynchronouslyForTimePoints(timePoints: [TimePoint], fromURL URL: NSURL, fileProperties: [String: AnyObject], frameProperties: [String: AnyObject], frameCount: Int, progressHandler: ((CGImage, Double) -> Void)?, completionHandler: (NSURL? -> Void)?) -> Void {
+    public class func createGIFAsynchronouslyForTimePoints(timePoints: [TimePoint], fromURL URL: NSURL, fileProperties: [String: AnyObject], frameProperties: [String: AnyObject], frameCount: Int, progressHandler: ProgressCallback?, completionHandler: (NSURL? -> Void)?) -> Void {
         
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0)) {
             let temporaryFile = NSTemporaryDirectory().stringByAppendingPathComponent(Constants.FileName)
@@ -130,10 +131,11 @@ public class Regift: NSObject {
                     println("Cancelling CGImage generation due to error: \(error)")
                     completionHandler?(nil)
                 }
-                else if result == .Succeeded && image != nil {
+                else if result == .Succeeded {
                     CGImageDestinationAddImage(destination, image, frameProperties as CFDictionaryRef)
                     
                     generatedImageCount += 1.0
+                    
                     let progress = Double(timePoints.count) / generatedImageCount
                     progressHandler?(image, progress)
                     
