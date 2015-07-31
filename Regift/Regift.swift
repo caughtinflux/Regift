@@ -45,7 +45,7 @@ public class Regift: NSObject {
     }
     
     /**
-    Ascynchronusly convert the video at the given URL to a GIF, and return the GIF's URL if it was created.
+    Ascynchronously convert the video at the given URL to a GIF, and return the GIF's URL if it was created.
     
     :param: URL The URL at which the video to be converted to GIF exists
     :param: frameCount Number of frames to extract from the video for use in the GIF. The frames are evenly spaced out and all have the same duration
