@@ -64,7 +64,7 @@ public class Regift: NSObject {
             kCGImagePropertyGIFDictionary as String: [kCGImagePropertyGIFDelayTime as String: delayTime]
         ]
         
-        let asset = AVURLAsset(URL: URL, options: [NSObject: AnyObject]())
+        let asset = AVURLAsset(URL: URL, options: [AVURLAssetPreferPreciseDurationAndTimingKey: NSNumber(bool: true)])
         
         // The total length of the movie, in seconds.
         let movieLength = Float(asset.duration.value) / Float(asset.duration.timescale)
@@ -77,11 +77,13 @@ public class Regift: NSObject {
         
         for frameNumber in 0 ..< frameCount {
             let seconds: Float64 = Float64(increment) * Float64(frameNumber)
+            
             let time = CMTimeMakeWithSeconds(seconds, Constants.TimeInterval)
             
             timePoints.append(time)
         }
         Regift.createGIFAsynchronouslyForTimePoints(timePoints, fromURL: URL, fileProperties: fileProperties, frameProperties: frameProperties, frameCount: frameCount, progressHandler: progressHandler, completionHandler: completionHandler)
+        
     }
     
     public class func createGIFForTimePoints(timePoints: [TimePoint], fromURL URL: NSURL, fileProperties: [String: AnyObject], frameProperties: [String: AnyObject], frameCount: Int) -> NSURL? {
@@ -128,7 +130,7 @@ public class Regift: NSObject {
             let generationHandler: AVAssetImageGeneratorCompletionHandler = {[weak generator] (requestedTime: CMTime, image: CGImage!, receivedTime: CMTime, result: AVAssetImageGeneratorResult, err: NSError!) -> Void in
                 if let error = err where result != .Cancelled {
                     generator?.cancelAllCGImageGeneration()
-                    println("Cancelling CGImage generation due to error: \(error)")
+                    NSLog("Cancelling CGImage generation due to error: \(error.domain)(\(error.code)) - \(error.localizedFailureReason ??  nil)")
                     completionHandler?(nil)
                 }
                 else if result == .Succeeded {
@@ -144,7 +146,7 @@ public class Regift: NSObject {
                             completionHandler?(fileURL)
                         }
                         else {
-                            println("\(self): Unable to finalize CGImageDestination!")
+                            NSLog("\(self): Unable to finalize CGImageDestination!")
                             completionHandler?(nil)
                         }
                     }
