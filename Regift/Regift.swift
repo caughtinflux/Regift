@@ -126,7 +126,7 @@ public class Regift: NSObject {
             var error: NSError?
             var generatedImageCount = 0.0
             let generationHandler: AVAssetImageGeneratorCompletionHandler = {[weak generator] (requestedTime: CMTime, image: CGImage!, receivedTime: CMTime, result: AVAssetImageGeneratorResult, err: NSError!) -> Void in
-                if let error = err {
+                if let error = err where result != .Cancelled {
                     generator?.cancelAllCGImageGeneration()
                     println("Cancelling CGImage generation due to error: \(error)")
                     completionHandler?(nil)
