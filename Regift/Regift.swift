@@ -129,9 +129,10 @@ public class Regift: NSObject {
             var generatedImageCount = 0.0
             let generationHandler: AVAssetImageGeneratorCompletionHandler = {[weak generator] (requestedTime: CMTime, image: CGImage!, receivedTime: CMTime, result: AVAssetImageGeneratorResult, err: NSError!) -> Void in
                 if let error = err where result != .Cancelled {
-                    generator?.cancelAllCGImageGeneration()
-                    NSLog("Cancelling CGImage generation due to error: \(error.domain)(\(error.code)) - \(error.localizedFailureReason ??  nil)")
-                    completionHandler?(nil)
+                    NSLog("Error generating CGImage: \(error.domain)(\(error.code)) - \(error.localizedFailureReason ??  nil)")
+                    if (CMTimeCompare(requestedTime, timePoints.last!) == 0) {
+                        completionHandler?(nil)
+                    }
                 }
                 else if result == .Succeeded {
                     CGImageDestinationAddImage(destination, image, frameProperties as CFDictionaryRef)
