@@ -25,10 +25,10 @@ public class Regift: NSObject {
     /**
     Convert the video at the given URL to a GIF, and return the GIF's URL if it was created.
     
-    :param: URL The URL at which the video to be converted to GIF exists
-    :param: frameCount Number of frames to extract from the video for use in the GIF. The frames are evenly spaced out and all have the same duration
-    :param: delayTime The amount of time for each frame in the GIF.
-    :param: loopCount The number of times the GIF will repeat. Defaults to 0, which means repeat infinitely.
+    - parameter URL: The URL at which the video to be converted to GIF exists
+    - parameter frameCount: Number of frames to extract from the video for use in the GIF. The frames are evenly spaced out and all have the same duration
+    - parameter delayTime: The amount of time for each frame in the GIF.
+    - parameter loopCount: The number of times the GIF will repeat. Defaults to 0, which means repeat infinitely.
     */
     public class func createGIFFromURL(URL: NSURL, withFrameCount frameCount: Int, delayTime: Float, loopCount: Int = 0) -> NSURL? {
         var gifURL: NSURL? = nil
@@ -47,12 +47,12 @@ public class Regift: NSObject {
     /**
     Ascynchronously convert the video at the given URL to a GIF, and return the GIF's URL if it was created.
     
-    :param: URL The URL at which the video to be converted to GIF exists
-    :param: frameCount Number of frames to extract from the video for use in the GIF. The frames are evenly spaced out and all have the same duration
-    :param: delayTime The amount of time for each frame in the GIF.
-    :param: loopCount The number of times the GIF will repeat. Defaults to 0, which means repeat infinitely.
-    :param: progressHandler The closure to be called with the progress of the conversion. It is called with an argument from 0.0 -> 1.0
-    :param: completionHandler The closure to be called on completion of the process. If the conversion was successful, an NSURL to the location of the GIF on disk is passed in.
+    - parameter URL: The URL at which the video to be converted to GIF exists
+    - parameter frameCount: Number of frames to extract from the video for use in the GIF. The frames are evenly spaced out and all have the same duration
+    - parameter delayTime: The amount of time for each frame in the GIF.
+    - parameter loopCount: The number of times the GIF will repeat. Defaults to 0, which means repeat infinitely.
+    - parameter progressHandler: The closure to be called with the progress of the conversion. It is called with an argument from 0.0 -> 1.0
+    - parameter completionHandler: The closure to be called on completion of the process. If the conversion was successful, an NSURL to the location of the GIF on disk is passed in.
     */
     public class func createGIFAsynchronouslyFromURL(URL: NSURL, withFrameCount frameCount: Int, delayTime: Float, loopCount: Int = 0, progressHandler: ProgressCallback?, completionHandler: (NSURL? -> Void)?) {
         let fileProperties = [
@@ -106,28 +106,21 @@ public class Regift: NSObject {
     public class func createGIFAsynchronouslyForTimePoints(timePoints: [TimePoint], fromURL URL: NSURL, fileProperties: [String: AnyObject], frameProperties: [String: AnyObject], frameCount: Int, progressHandler: ProgressCallback?, completionHandler: (NSURL? -> Void)?) -> Void {
         
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0)) {
-            let temporaryFile = NSTemporaryDirectory().stringByAppendingPathComponent(Constants.FileName)
-            let fileURL = NSURL.fileURLWithPath(temporaryFile, isDirectory: false)
-
-            if fileURL == nil {
-                completionHandler?(nil)
-                return
-            }
+            let fileURL = NSURL(fileURLWithPath: NSTemporaryDirectory()).URLByAppendingPathComponent(Constants.FileName)
             
-            let destination = CGImageDestinationCreateWithURL(fileURL!, kUTTypeGIF, frameCount, NSDictionary())
+            let destination = CGImageDestinationCreateWithURL(fileURL, kUTTypeGIF, frameCount, NSDictionary())!
             
             CGImageDestinationSetProperties(destination, fileProperties as CFDictionaryRef)
-            let asset = AVURLAsset(URL: URL, options: [NSObject: AnyObject]())
+            let asset = AVURLAsset(URL: URL)
             let generator = AVAssetImageGenerator(asset: asset)
             
             generator.appliesPreferredTrackTransform = true
             let tolerance = CMTimeMakeWithSeconds(Constants.Tolerance, Constants.TimeInterval)
             generator.requestedTimeToleranceBefore = tolerance
             generator.requestedTimeToleranceAfter = tolerance
-            
-            var error: NSError?
+        
             var generatedImageCount = 0.0
-            let generationHandler: AVAssetImageGeneratorCompletionHandler = {[weak generator] (requestedTime: CMTime, image: CGImage!, receivedTime: CMTime, result: AVAssetImageGeneratorResult, err: NSError!) -> Void in
+            let generationHandler: AVAssetImageGeneratorCompletionHandler = {(requestedTime: CMTime, image: CGImage?, receivedTime: CMTime, result: AVAssetImageGeneratorResult, err: NSError?) -> Void in
                 if let error = err where result != .Cancelled {
                     NSLog("Error generating CGImage: \(error.domain)(\(error.code)) - \(error.localizedFailureReason ??  nil)")
                     if (CMTimeCompare(requestedTime, timePoints.last!) == 0) {
@@ -135,12 +128,12 @@ public class Regift: NSObject {
                     }
                 }
                 else if result == .Succeeded {
-                    CGImageDestinationAddImage(destination, image, frameProperties as CFDictionaryRef)
+                    CGImageDestinationAddImage(destination, image!, frameProperties as CFDictionaryRef)
                     
                     generatedImageCount += 1.0
 
                     let progress =  generatedImageCount / Double(timePoints.count)
-                    progressHandler?(image, progress)
+                    progressHandler?(image!, progress)
                     
                     if (CMTimeCompare(requestedTime, timePoints.last!) == 0) {
                         if CGImageDestinationFinalize(destination) {
