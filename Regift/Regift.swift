@@ -54,7 +54,7 @@ public class Regift: NSObject {
     - parameter progressHandler: The closure to be called with the progress of the conversion. It is called with an argument from 0.0 -> 1.0
     - parameter completionHandler: The closure to be called on completion of the process. If the conversion was successful, an NSURL to the location of the GIF on disk is passed in.
     */
-    public class func createGIFAsynchronouslyFromURL(URL: NSURL, withFrameCount frameCount: Int, delayTime: Float, loopCount: Int = 0, progressHandler: ProgressCallback?, completionHandler: (NSURL? -> Void)?) {
+    public class func createGIFAsynchronouslyFromURL(URL: NSURL, withFrameCount frameCount: Int, delayTime: Float, loopCount: Int = 0, maxImageSize: CGSize = CGSizeZero, progressHandler: ProgressCallback?, completionHandler: (NSURL? -> Void)?) {
         let fileProperties = [
             kCGImagePropertyGIFDictionary as String :
                 [kCGImagePropertyGIFLoopCount as String: loopCount]
@@ -82,7 +82,7 @@ public class Regift: NSObject {
             
             timePoints.append(time)
         }
-        Regift.createGIFAsynchronouslyForTimePoints(timePoints, fromURL: URL, fileProperties: fileProperties, frameProperties: frameProperties, frameCount: frameCount, progressHandler: progressHandler, completionHandler: completionHandler)
+        Regift.createGIFAsynchronouslyForTimePoints(timePoints, fromURL: URL, fileProperties: fileProperties, frameProperties: frameProperties, maxImageSize: maxImageSize, frameCount: frameCount, progressHandler: progressHandler, completionHandler: completionHandler)
         
     }
     
@@ -103,7 +103,7 @@ public class Regift: NSObject {
         return fileURL
     }
     
-    public class func createGIFAsynchronouslyForTimePoints(timePoints: [TimePoint], fromURL URL: NSURL, fileProperties: [String: AnyObject], frameProperties: [String: AnyObject], frameCount: Int, progressHandler: ProgressCallback?, completionHandler: (NSURL? -> Void)?) -> Void {
+    public class func createGIFAsynchronouslyForTimePoints(timePoints: [TimePoint], fromURL URL: NSURL, fileProperties: [String: AnyObject], frameProperties: [String: AnyObject], maxImageSize: CGSize = CGSizeZero, frameCount: Int, progressHandler: ProgressCallback?, completionHandler: (NSURL? -> Void)?) -> Void {
         
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0)) {
             let fileURL = NSURL(fileURLWithPath: NSTemporaryDirectory()).URLByAppendingPathComponent(Constants.FileName)
@@ -118,6 +118,7 @@ public class Regift: NSObject {
             let tolerance = CMTimeMakeWithSeconds(Constants.Tolerance, Constants.TimeInterval)
             generator.requestedTimeToleranceBefore = tolerance
             generator.requestedTimeToleranceAfter = tolerance
+            generator.maximumSize = maxImageSize
         
             var generatedImageCount = 0.0
             let generationHandler: AVAssetImageGeneratorCompletionHandler = {(requestedTime: CMTime, image: CGImage?, receivedTime: CMTime, result: AVAssetImageGeneratorResult, err: NSError?) -> Void in
