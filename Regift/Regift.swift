@@ -15,7 +15,7 @@ import Dispatch
 public typealias TimePoint = CMTime
 public typealias ProgressCallback = ((CGImage, Double) -> Void)
 
-public class Regift: NSObject {
+open class Regift: NSObject {
     struct Constants {
         static let FileName = "regift.gif"
         static let TimeInterval: Int32 = 600
@@ -30,16 +30,16 @@ public class Regift: NSObject {
     - parameter delayTime: The amount of time for each frame in the GIF.
     - parameter loopCount: The number of times the GIF will repeat. Defaults to 0, which means repeat infinitely.
     */
-    public class func createGIFFromURL(URL: NSURL, withFrameCount frameCount: Int, delayTime: Float, loopCount: Int = 0) -> NSURL? {
-        var gifURL: NSURL? = nil
+    open class func createGIFFromURL(_ URL: Foundation.URL, withFrameCount frameCount: Int, delayTime: Float, loopCount: Int = 0) -> Foundation.URL? {
+        var gifURL: Foundation.URL? = nil
         
-        let group = dispatch_group_create()
-        dispatch_group_enter(group)
+        let group = DispatchGroup()
+        group.enter()
         createGIFAsynchronouslyFromURL(URL, withFrameCount: frameCount, delayTime: delayTime, loopCount: loopCount, progressHandler: nil, completionHandler: {finalURL in
             gifURL = finalURL
-            dispatch_group_leave(group);
+            group.leave();
         })
-        dispatch_group_wait(group, DISPATCH_TIME_FOREVER)
+        _ = group.wait(timeout: DispatchTime.distantFuture)
         
         return gifURL
     }
@@ -54,7 +54,7 @@ public class Regift: NSObject {
     - parameter progressHandler: The closure to be called with the progress of the conversion. It is called with an argument from 0.0 -> 1.0
     - parameter completionHandler: The closure to be called on completion of the process. If the conversion was successful, an NSURL to the location of the GIF on disk is passed in.
     */
-    public class func createGIFAsynchronouslyFromURL(URL: NSURL, withFrameCount frameCount: Int, delayTime: Float, loopCount: Int = 0, maxImageSize: CGSize = CGSizeZero, progressHandler: ProgressCallback?, completionHandler: (NSURL? -> Void)?) {
+    open class func createGIFAsynchronouslyFromURL(_ URL: Foundation.URL, withFrameCount frameCount: Int, delayTime: Float, loopCount: Int = 0, maxImageSize: CGSize = CGSize.zero, progressHandler: ProgressCallback?, completionHandler: ((Foundation.URL?) -> Void)?) {
         let fileProperties = [
             kCGImagePropertyGIFDictionary as String :
                 [kCGImagePropertyGIFLoopCount as String: loopCount]
@@ -64,7 +64,7 @@ public class Regift: NSObject {
             kCGImagePropertyGIFDictionary as String: [kCGImagePropertyGIFDelayTime as String: delayTime]
         ]
         
-        let asset = AVURLAsset(URL: URL, options: [AVURLAssetPreferPreciseDurationAndTimingKey: NSNumber(bool: true)])
+        let asset = AVURLAsset(url: URL, options: [AVURLAssetPreferPreciseDurationAndTimingKey: NSNumber(value: true as Bool)])
         
         // The total length of the movie, in seconds.
         let movieLength = Float(asset.duration.value) / Float(asset.duration.timescale)
@@ -82,36 +82,36 @@ public class Regift: NSObject {
             
             timePoints.append(time)
         }
-        Regift.createGIFAsynchronouslyForTimePoints(timePoints, fromURL: URL, fileProperties: fileProperties, frameProperties: frameProperties, maxImageSize: maxImageSize, frameCount: frameCount, progressHandler: progressHandler, completionHandler: completionHandler)
+        Regift.createGIFAsynchronouslyForTimePoints(timePoints, fromURL: URL, fileProperties: fileProperties as [String : AnyObject], frameProperties: frameProperties as [String : AnyObject], maxImageSize: maxImageSize, frameCount: frameCount, progressHandler: progressHandler, completionHandler: completionHandler)
         
     }
     
-    public class func createGIFForTimePoints(timePoints: [TimePoint], fromURL URL: NSURL, fileProperties: [String: AnyObject], frameProperties: [String: AnyObject], frameCount: Int) -> NSURL? {
+    open class func createGIFForTimePoints(_ timePoints: [TimePoint], fromURL URL: Foundation.URL, fileProperties: [String: AnyObject], frameProperties: [String: AnyObject], frameCount: Int) -> Foundation.URL? {
         
-        var fileURL: NSURL? = nil
+        var fileURL: Foundation.URL? = nil
         
-        let group = dispatch_group_create()
-        dispatch_group_enter(group)
+        let group = DispatchGroup()
+        group.enter()
         
         createGIFAsynchronouslyForTimePoints(timePoints, fromURL: URL, fileProperties: fileProperties, frameProperties: frameProperties, frameCount: frameCount, progressHandler: nil, completionHandler: {URL in
             fileURL = URL
-            dispatch_group_leave(group)
+            group.leave()
         })
 
-        dispatch_group_wait(group, DISPATCH_TIME_FOREVER)
+        _ = group.wait(timeout: DispatchTime.distantFuture)
         
         return fileURL
     }
     
-    public class func createGIFAsynchronouslyForTimePoints(timePoints: [TimePoint], fromURL URL: NSURL, fileProperties: [String: AnyObject], frameProperties: [String: AnyObject], maxImageSize: CGSize = CGSizeZero, frameCount: Int, progressHandler: ProgressCallback?, completionHandler: (NSURL? -> Void)?) -> Void {
+    open class func createGIFAsynchronouslyForTimePoints(_ timePoints: [TimePoint], fromURL URL: Foundation.URL, fileProperties: [String: AnyObject], frameProperties: [String: AnyObject], maxImageSize: CGSize = CGSize.zero, frameCount: Int, progressHandler: ProgressCallback?, completionHandler: ((Foundation.URL?) -> Void)?) -> Void {
         
-        dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0)) {
-            let fileURL = NSURL(fileURLWithPath: NSTemporaryDirectory()).URLByAppendingPathComponent(Constants.FileName)
+        DispatchQueue.global(qos: DispatchQoS.QoSClass.default).async {
+            let fileURL = Foundation.URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(Constants.FileName)
             
-            let destination = CGImageDestinationCreateWithURL(fileURL, kUTTypeGIF, frameCount, NSDictionary())!
+            let destination = CGImageDestinationCreateWithURL(fileURL as CFURL, kUTTypeGIF, frameCount, NSDictionary())!
             
-            CGImageDestinationSetProperties(destination, fileProperties as CFDictionaryRef)
-            let asset = AVURLAsset(URL: URL)
+            CGImageDestinationSetProperties(destination, fileProperties as CFDictionary)
+            let asset = AVURLAsset(url: URL)
             let generator = AVAssetImageGenerator(asset: asset)
             
             generator.appliesPreferredTrackTransform = true
@@ -122,14 +122,14 @@ public class Regift: NSObject {
         
             var generatedImageCount = 0.0
             let generationHandler: AVAssetImageGeneratorCompletionHandler = {(requestedTime: CMTime, image: CGImage?, receivedTime: CMTime, result: AVAssetImageGeneratorResult, err: NSError?) -> Void in
-                if let error = err where result != .Cancelled {
-                    NSLog("Error generating CGImage: \(error.domain)(\(error.code)) - \(error.localizedFailureReason ??  nil)")
+                if let error = err, result != .cancelled {
+                    NSLog("Error generating CGImage: \(error.domain)(\(error.code)) - \(String(describing: error.localizedFailureReason ??  nil))")
                     if (CMTimeCompare(requestedTime, timePoints.last!) == 0) {
                         completionHandler?(nil)
                     }
                 }
-                else if result == .Succeeded {
-                    CGImageDestinationAddImage(destination, image!, frameProperties as CFDictionaryRef)
+                else if result == .succeeded {
+                    CGImageDestinationAddImage(destination, image!, frameProperties as CFDictionary)
                     
                     generatedImageCount += 1.0
 
@@ -146,7 +146,7 @@ public class Regift: NSObject {
                         }
                     }
                 }
-            }
+            } as! AVAssetImageGeneratorCompletionHandler
             
             generator.generateCGImagesAsynchronouslyForTimePoints(timePoints, completionHandler: generationHandler)
         }
